@@ -1,75 +1,79 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserProfile } from '@/types';
+import { AuthService, LoginPayload, RegisterPayload } from '@/services/authService';
 
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  loginAsDemoUser: (role?: 'student' | 'staff' | 'admin') => void;
-  logout: () => void;
   isLoading: boolean;
+  login: (payload: LoginPayload) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
+  updateProfile: (updates: Partial<Pick<UserProfile, 'name' | 'phone' | 'department'>>) => Promise<void>;
+  logout: () => Promise<void>;
+  loginAsDemoUser: (role?: 'student' | 'staff' | 'admin') => void;
 }
-
-const DEMO_USERS: Record<string, UserProfile> = {
-  student: {
-    id: 'usr-student-01',
-    name: 'Jordan Taylor',
-    email: 'jordan.t@campus.edu',
-    role: 'student',
-    department: 'Computer Science & Engineering',
-    campusId: 'STU-2024-8821',
-    phone: '+1 (555) 019-4567',
-    createdAt: '2026-09-01',
-  },
-  admin: {
-    id: 'usr-admin-01',
-    name: 'Administrator Sarah',
-    email: 'admin.lostfound@campus.edu',
-    role: 'admin',
-    department: 'Campus Safety & Student Affairs',
-    campusId: 'STAFF-ADMIN-01',
-    phone: '+1 (555) 019-0001',
-    createdAt: '2026-01-15',
-  },
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Check if preview user was stored in sessionStorage for dev testing
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    try {
-      const stored = sessionStorage.getItem('clf_preview_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [user, setUser] = useState<UserProfile | null>(() => AuthService.getCurrentUser());
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const login = useCallback(async (payload: LoginPayload) => {
+    setIsLoading(true);
     try {
-      if (user) {
-        sessionStorage.setItem('clf_preview_user', JSON.stringify(user));
-      } else {
-        sessionStorage.removeItem('clf_preview_user');
-      }
-    } catch {
-      // Storage unavailable or disabled
+      const loggedUser = await AuthService.login(payload);
+      setUser(loggedUser);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const register = useCallback(async (payload: RegisterPayload) => {
+    setIsLoading(true);
+    try {
+      const newUser = await AuthService.register(payload);
+      setUser(newUser);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (updates: Partial<Pick<UserProfile, 'name' | 'phone' | 'department'>>) => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const updated = await AuthService.updateProfile(user.id, updates);
+      setUser(updated);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
-  const loginAsDemoUser = (role: 'student' | 'staff' | 'admin' = 'student') => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
-    const selected = role === 'admin' ? DEMO_USERS.admin : DEMO_USERS.student;
-    setUser(selected);
-    setIsLoading(false);
-  };
+    try {
+      await AuthService.logout();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-  };
+  const loginAsDemoUser = useCallback((role: 'student' | 'staff' | 'admin' = 'student') => {
+    const demoUser = AuthService.switchDemoRole(role);
+    setUser(demoUser);
+  }, []);
+
+  useEffect(() => {
+    // Listen for storage changes across tabs
+    const handleStorageChange = () => {
+      setUser(AuthService.getCurrentUser());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
@@ -80,9 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated,
         isAdmin,
-        loginAsDemoUser,
-        logout,
         isLoading,
+        login,
+        register,
+        updateProfile,
+        logout,
+        loginAsDemoUser,
       }}
     >
       {children}

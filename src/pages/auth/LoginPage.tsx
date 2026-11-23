@@ -4,22 +4,35 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
-import { Lock, Mail, ShieldCheck, User } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { loginAsDemoUser } = useAuth();
+  const { login, loginAsDemoUser, isLoading } = useAuth();
 
   const redirectPath = searchParams.get('redirect') || '/dashboard';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // CLF-21 establishes the React foundation. Full token auth arrives in CLF-22.
-    loginAsDemoUser('student');
-    navigate(redirectPath);
+    setError(null);
+
+    if (!email.trim() || !password.trim()) {
+      setError('Please provide both your registered email and password.');
+      return;
+    }
+
+    try {
+      await login({ email, password });
+      navigate(redirectPath);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid credentials. Please verify and retry.');
+    }
   };
 
   const handleDemoLogin = (role: 'student' | 'admin') => {
@@ -46,50 +59,78 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        <Card className="p-6 sm:p-8 space-y-6">
+        {error && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2.5 animate-fade-in">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <Card className="p-6 sm:p-8 space-y-6 shadow-card">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Campus Email Address"
+              label="Campus / Registered Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="username@campus.edu"
+              placeholder="e.g. jordan.taylor@campus.edu"
               required
               leftIcon={<Mail className="w-4 h-4" />}
             />
 
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              required
-              leftIcon={<Lock className="w-4 h-4" />}
-            />
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                required
+                leftIcon={<Lock className="w-4 h-4" />}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-8 text-slate-400 hover:text-slate-600 p-1"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
 
             <div className="flex items-center justify-between text-xs">
               <label className="flex items-center text-slate-600 cursor-pointer">
                 <input
                   type="checkbox"
+                  defaultChecked
                   className="rounded border-slate-300 text-royal-600 focus:ring-royal-500 h-4 w-4 mr-2"
                 />
-                Remember this device
+                Remember this session
               </label>
-              <a href="#forgot" className="text-royal-600 hover:underline font-medium">
+              <button
+                type="button"
+                onClick={() => alert('Password recovery: Contact the campus IT helpdesk at helpdesk@campus.edu.')}
+                className="text-royal-600 hover:underline font-medium"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
-            <Button type="submit" variant="primary" className="w-full" size="md">
-              Sign In with Campus ID
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              size="md"
+              isLoading={isLoading}
+            >
+              Sign In to Campus Directory
             </Button>
           </form>
 
           {/* Quick Preview Login for Evaluators / Milestone Review */}
           <div className="pt-4 border-t border-slate-100">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 text-center mb-3">
-              Milestone Quick Preview
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center mb-2.5">
+              Instant Testing Mode
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Button
@@ -111,9 +152,6 @@ export const LoginPage: React.FC = () => {
                 Admin Demo
               </Button>
             </div>
-            <p className="text-[11px] text-slate-400 text-center mt-2">
-              Allows immediate navigation and testing across all 12 frontend routes.
-            </p>
           </div>
         </Card>
 

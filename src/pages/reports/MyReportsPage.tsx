@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { SAMPLE_REPORTS } from '@/services/mockData';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useAuth } from '@/hooks/useAuth';
+import { ReportsService } from '@/services/reportsService';
+import { ItemReport } from '@/types';
 import { formatDate, formatCategory } from '@/utils/formatters';
 import {
   FileText,
@@ -12,27 +16,59 @@ import {
   MapPin,
   Calendar,
   ArrowRight,
+  RotateCcw,
 } from 'lucide-react';
-import { ItemReport, ItemStatus } from '@/types';
 
 export const MyReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<ItemReport[]>(SAMPLE_REPORTS.slice(0, 3));
+  const { user } = useAuth();
+  const [reports, setReports] = useState<ItemReport[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'lost' | 'found' | 'resolved'>('all');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  const handleToggleResolve = (id: string) => {
-    setReports((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          const nextStatus: ItemStatus = r.status === 'resolved' ? 'open' : 'resolved';
-          return {
-            ...r,
-            status: nextStatus,
-            resolvedAt: nextStatus === 'resolved' ? new Date().toISOString() : undefined,
-          };
-        }
-        return r;
-      })
-    );
+  const fetchMyReports = async () => {
+    setIsLoading(true);
+    try {
+      const allReports = await ReportsService.getPublicReports();
+      // Filter strictly to current user's filings
+      const mine = allReports.filter(
+        (r) => r.reporterId === user?.id || r.reporterName === user?.name
+      );
+      setReports(mine);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyReports();
+  }, [user]);
+
+  // Handle reporter resolution toggle
+  const handleToggleResolve = async (id: string, currentStatus: string) => {
+    if (!user) return;
+    setActionLoadingId(id);
+    const willResolve = currentStatus !== 'resolved';
+
+    try {
+      await ReportsService.setReportResolution(id, user.id, willResolve);
+      // Update local state
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: willResolve ? 'resolved' : 'open',
+                resolvedAt: willResolve ? new Date().toISOString() : undefined,
+              }
+            : r
+        )
+      );
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Unable to update report status.');
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const filteredReports = reports.filter((r) => {
@@ -51,7 +87,7 @@ export const MyReportsPage: React.FC = () => {
             My Filings &amp; Reports
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage your reported lost and found items. Mark items as resolved once reconnected.
+            Manage your personal submissions. Only you as the original reporter can mark items as resolved.
           </p>
         </div>
 
@@ -93,7 +129,7 @@ export const MyReportsPage: React.FC = () => {
               : 'text-slate-600 hover:text-navy-800 hover:bg-slate-100'
           }`}
         >
-          Active Lost
+          Active Lost ({reports.filter((r) => r.type === 'lost' && r.status !== 'resolved').length})
         </button>
         <button
           onClick={() => setFilter('found')}
@@ -103,7 +139,7 @@ export const MyReportsPage: React.FC = () => {
               : 'text-slate-600 hover:text-navy-800 hover:bg-slate-100'
           }`}
         >
-          Active Found
+          Active Found ({reports.filter((r) => r.type === 'found' && r.status !== 'resolved').length})
         </button>
         <button
           onClick={() => setFilter('resolved')}
@@ -113,14 +149,16 @@ export const MyReportsPage: React.FC = () => {
               : 'text-slate-600 hover:text-navy-800 hover:bg-slate-100'
           }`}
         >
-          Resolved
+          Resolved ({reports.filter((r) => r.status === 'resolved').length})
         </button>
       </div>
 
-      {/* Reports List */}
-      <div className="space-y-4">
-        {filteredReports.length > 0 ? (
-          filteredReports.map((item) => (
+      {/* Reports Listing */}
+      {isLoading ? (
+        <LoadingSpinner label="Loading your personal reports..." className="py-16" />
+      ) : filteredReports.length > 0 ? (
+        <div className="space-y-4">
+          {filteredReports.map((item) => (
             <Card key={item.id} hoverEffect className="p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2 max-w-2xl">
@@ -139,13 +177,13 @@ export const MyReportsPage: React.FC = () => {
                     )}
                   </div>
 
-                  <h3 className="text-lg font-bold text-navy-800">{item.title}</h3>
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  <h3 className="text-base sm:text-lg font-bold text-navy-800">{item.title}</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
-                    <span className="flex items-center gap-1 text-slate-600">
+                    <span className="flex items-center gap-1 text-slate-600 font-medium">
                       <MapPin className="w-3.5 h-3.5 text-royal-500" />
                       {item.location}
                     </span>
@@ -156,36 +194,43 @@ export const MyReportsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Reporter Controls */}
+                {/* Reporter-Controlled Actions */}
                 <div className="flex md:flex-col items-center md:items-end justify-between border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 gap-2 flex-shrink-0">
                   <Button
                     variant={item.status === 'resolved' ? 'outline' : 'secondary'}
                     size="sm"
-                    onClick={() => handleToggleResolve(item.id)}
-                    leftIcon={<CheckCircle className="w-4 h-4" />}
+                    onClick={() => handleToggleResolve(item.id, item.status)}
+                    isLoading={actionLoadingId === item.id}
+                    leftIcon={
+                      item.status === 'resolved' ? (
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      ) : (
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      )
+                    }
                   >
                     {item.status === 'resolved' ? 'Reopen Listing' : 'Mark as Resolved'}
                   </Button>
 
                   <Link to={`/item/${item.id}`}>
                     <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                      Public Details
+                      Public View
                     </Button>
                   </Link>
                 </div>
               </div>
             </Card>
-          ))
-        ) : (
-          <Card className="text-center py-16 px-4">
-            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-navy-800">No reports found in this tab</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              You haven't filed any reports matching this filter yet.
-            </p>
-          </Card>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<FileText className="w-6 h-6" />}
+          title="No filings found in this tab"
+          description="You do not have any lost or found reports under this filter. File a new report to begin tracking."
+          actionLabel="File a Lost Report"
+          onAction={() => window.location.assign('/report-lost')}
+        />
+      )}
     </div>
   );
 };
