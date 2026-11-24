@@ -7,6 +7,7 @@ from app.database import Base, engine
 # API Routers
 from app.auth.routes import router as auth_router
 from app.items.routes import router as item_router
+from app.found_items.routes import router as found_item_router
 
 # Database Models
 from app.models.user import User
@@ -28,6 +29,7 @@ Base.metadata.create_all(bind=engine)
 # Register API routes
 app.include_router(auth_router)
 app.include_router(item_router)
+app.include_router(found_item_router)
 
 
 # Configure CORS
