@@ -5,13 +5,13 @@ import { APP_CONFIG } from '@/utils/constants';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-white border-t border-slate-200 mt-auto">
+    <footer className="bg-[#050817] border-t border-[#6F91FF]/10 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Col */}
           <div className="md:col-span-2">
             <BrandLogo size="md" />
-            <p className="mt-3 text-sm text-slate-500 max-w-sm">
+            <p className="mt-3 text-sm text-slate-400 max-w-sm">
               {APP_CONFIG.tagline} A centralized university service enabling students, faculty, and campus staff to report, track, and recover misplaced belongings.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
@@ -64,7 +64,6 @@ export const Footer: React.FC = () => {
                 </a>
               </li>
               <li className="pt-2 text-xs text-slate-400">
-                Software Engineering CCA Project
                 <br />
                 Team CLF: Kuldeep, Ravindra, Prathikshaa, Meghana
               </li>

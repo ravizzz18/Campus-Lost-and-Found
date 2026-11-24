@@ -19,13 +19,13 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium transition-colors duration-150 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
+  const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050817] disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
   const variants = {
-    primary: 'bg-royal-500 text-white hover:bg-royal-600 active:bg-royal-700 focus:ring-royal-500 shadow-sm',
-    secondary: 'bg-navy-800 text-white hover:bg-navy-700 active:bg-navy-900 focus:ring-navy-800 shadow-sm',
-    outline: 'border border-slate-200 bg-white text-navy-800 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-300',
-    ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-navy-800 focus:ring-slate-200',
+    primary: 'bg-royal-500 text-white hover:bg-royal-400 active:bg-royal-600 focus:ring-royal-500 shadow-[0_10px_30px_rgba(49,95,234,0.24)]',
+    secondary: 'bg-white/[0.07] text-white border border-white/10 hover:bg-white/[0.11] active:bg-white/[0.06] focus:ring-slate-400',
+    outline: 'border border-[#8DA4EB]/20 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:border-[#8DA4EB]/40 focus:ring-slate-400',
+    ghost: 'bg-transparent text-slate-300 hover:bg-white/[0.06] hover:text-white focus:ring-slate-500',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500 shadow-sm',
   };
 
