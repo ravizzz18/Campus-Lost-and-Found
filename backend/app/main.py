@@ -1,9 +1,18 @@
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
+
+# API Routers
 from app.auth.routes import router as auth_router
+from app.items.routes import router as item_router
+
+# Database Models
+from app.models.user import User
 from app.models.revoked_token import RevokedToken
+from app.models.item import Item
+
 
 app = FastAPI(
     title="Campus Lost and Found API",
@@ -11,11 +20,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
-# Register authentication routes
+
+# Register API routes
 app.include_router(auth_router)
+app.include_router(item_router)
+
 
 # Configure CORS
 app.add_middleware(
@@ -29,11 +42,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def root():
     return {
         "message": "Campus Lost and Found API is running"
     }
+
 
 @app.get("/api/health")
 def health_check():
