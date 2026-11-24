@@ -8,7 +8,7 @@ export const AdminLayout: React.FC = () => {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-canvas">
+    <div className="min-h-screen flex flex-col bg-[#111110]">
       <Navbar />
       
       {/* Admin Context Header */}

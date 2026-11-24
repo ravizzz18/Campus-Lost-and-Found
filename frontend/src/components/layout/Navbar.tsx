@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BrandLogo } from '../common/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,8 +19,16 @@ import {
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const { user, isAuthenticated, isAdmin, loginAsDemoUser, logout } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
@@ -29,75 +37,21 @@ export const Navbar: React.FC = () => {
 
   const navLinkClass = (path: string) => `
     inline-flex items-center text-sm font-medium transition-colors duration-150 px-3 py-1.5 rounded-md
-    ${isActive(path) ? 'text-royal-600 bg-royal-50 font-semibold' : 'text-slate-600 hover:text-navy-800 hover:bg-slate-100/60'}
+    ${isActive(path) ? 'text-[#F2EEE8] bg-[#D9824B]/12 border border-[#D9824B]/30 font-semibold' : 'text-[#A29B91] hover:text-[#F2EEE8] hover:bg-[#22201D]'}
   `;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-slate-200/80">
-      {/* Top Banner for dev milestone notice */}
-      <div className="bg-navy-900 text-slate-300 text-xs py-1.5 px-4 text-center border-b border-navy-800 flex items-center justify-between">
-        <span className="hidden sm:inline">
-          Official Campus Lost & Found System — Continuous Comprehensive Assessment (CCA)
-        </span>
-        <span className="sm:hidden text-[11px]">Campus Lost & Found Platform</span>
-        <div className="flex items-center gap-2">
-          {isAuthenticated ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Logged in: <strong className="text-white">{user?.name}</strong> ({user?.role})
-            </span>
-          ) : (
-            <span className="text-slate-400 text-xs">Public Mode</span>
-          )}
-          <div className="relative">
-            <button
-              onClick={() => setDevMenuOpen(!devMenuOpen)}
-              className="text-[11px] bg-navy-800 hover:bg-navy-700 text-royal-300 px-2 py-0.5 rounded border border-navy-700 inline-flex items-center gap-1"
-            >
-              <span>Switch Role</span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            {devMenuOpen && (
-              <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-elevated border border-slate-200 py-1 text-left z-50 text-navy-800">
-                <button
-                  onClick={() => {
-                    loginAsDemoUser('student');
-                    setDevMenuOpen(false);
-                  }}
-                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-slate-100 flex items-center justify-between"
-                >
-                  <span>Student View</span>
-                  {user?.role === 'student' && <span className="text-royal-600 font-bold">✓</span>}
-                </button>
-                <button
-                  onClick={() => {
-                    loginAsDemoUser('admin');
-                    setDevMenuOpen(false);
-                  }}
-                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-slate-100 flex items-center justify-between"
-                >
-                  <span>Admin View</span>
-                  {user?.role === 'admin' && <span className="text-royal-600 font-bold">✓</span>}
-                </button>
-                {isAuthenticated && (
-                  <button
-                    onClick={() => {
-                      logout();
-                      setDevMenuOpen(false);
-                    }}
-                    className="w-full px-3 py-1.5 text-xs text-left text-rose-600 hover:bg-rose-50 border-t border-slate-100"
-                  >
-                    Logout to Public
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 w-full px-0 transition-all duration-300">
+      <div
+        className={`mx-auto h-full transition-all duration-300 ${
+          isScrolled
+            ? 'mt-3 max-w-[calc(100%-2rem)] rounded-2xl border border-[#35312C]/90 bg-[#111110]/78 px-4 shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:max-w-[calc(100%-3rem)] lg:max-w-7xl'
+            : 'w-full border-b border-[#35312C] bg-[#111110]'
+        }`}
+      >
+        <div className={`flex items-center justify-between h-16 ${
+          isScrolled ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+        }`}>
           {/* Brand Logo */}
           <div className="flex-shrink-0">
             <BrandLogo />
@@ -151,6 +105,48 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-3">
             {isAuthenticated ? (
               <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <button
+                    onClick={() => setDevMenuOpen(!devMenuOpen)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-white/[0.06]"
+                  >
+                    <span>{user?.role}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  {devMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-44 rounded-lg border border-[#6F91FF]/20 bg-[#0A1024] py-1 text-left shadow-[0_18px_50px_rgba(0,0,0,0.35)] z-50">
+                      <button
+                        onClick={() => {
+                          loginAsDemoUser('student');
+                          setDevMenuOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.06]"
+                      >
+                        <span>Student View</span>
+                        {user?.role === 'student' && <span className="text-royal-400 font-bold">✓</span>}
+                      </button>
+                      <button
+                        onClick={() => {
+                          loginAsDemoUser('admin');
+                          setDevMenuOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.06]"
+                      >
+                        <span>Admin View</span>
+                        {user?.role === 'admin' && <span className="text-royal-400 font-bold">✓</span>}
+                      </button>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setDevMenuOpen(false);
+                        }}
+                        className="w-full border-t border-white/[0.06] px-3 py-2 text-left text-xs text-rose-400 hover:bg-rose-400/[0.06]"
+                      >
+                        Logout to Public
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <Link to="/profile">
                   <Button variant="outline" size="sm" leftIcon={<User className="w-4 h-4" />}>
                     Profile
@@ -168,6 +164,9 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
+                <span className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-slate-400">
+                  Public Mode
+                </span>
                 <Link to="/login">
                   <Button variant="ghost" size="sm">
                     Log in
@@ -186,7 +185,7 @@ export const Navbar: React.FC = () => {
           <div className="flex md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-600 hover:text-navy-800 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-royal-500"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -197,11 +196,11 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2">
+        <div className="md:hidden border-t border-[#6F91FF]/10 bg-[#070B1C]/98 px-4 pt-3 pb-6 space-y-2">
           <Link
             to="/browse"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+            className="flex items-center px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/[0.06] rounded-lg"
           >
             <Search className="w-4 h-4 mr-2" />
             Browse Items

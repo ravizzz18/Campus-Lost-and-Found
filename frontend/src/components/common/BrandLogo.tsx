@@ -23,7 +23,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ variant = 'dark', size = '
 
   return (
     <Link to="/" className="inline-flex items-center gap-2.5 group select-none">
-      <div className={`${iconSizes[size]} rounded-lg bg-navy-800 flex items-center justify-center text-white shadow-subtle group-hover:bg-royal-600 transition-colors`}>
+      <div className={`${iconSizes[size]} rounded-lg border border-[#D9824B]/30 bg-[#D9824B]/10 flex items-center justify-center text-[#D9824B] shadow-sm group-hover:bg-[#D9824B]/18 transition-colors`}>
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -38,11 +38,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ variant = 'dark', size = '
         </svg>
       </div>
       <div className="flex flex-col">
-        <span className={`${textSizes[size]} tracking-tight leading-none ${isDark ? 'text-navy-800' : 'text-white'}`}>
+        <span className={`${textSizes[size]} tracking-tight leading-none ${isDark ? 'text-white' : 'text-white'}`}>
           Campus Lost & Found
         </span>
         <span className={`text-[10px] uppercase font-semibold tracking-wider mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-300'}`}>
-          University Network
+          BMSIT&M
         </span>
       </div>
     </Link>

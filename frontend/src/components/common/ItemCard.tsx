@@ -54,7 +54,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item, className = '' }) => {
         )}
 
         <div className="space-y-1.5">
-          <span className="text-xs font-semibold text-royal-600 tracking-wide uppercase">
+          <span className="text-[10px] font-mono font-semibold text-royal-300 tracking-[0.16em] uppercase">
             {formatCategory(item.category)}
           </span>
           <h3 className="text-base font-bold text-navy-800 line-clamp-1 leading-snug">
