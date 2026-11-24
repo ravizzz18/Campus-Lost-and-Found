@@ -72,3 +72,15 @@ The diagram illustrates claim validation, retrieval of user and item records, ad
 **Files:**
 - `dfd_level_2.md` – Mermaid source code
 - `DFD_Level_2.png` – Rendered diagram
+
+## UML Sequence Diagram – Ownership Claim Management
+
+The UML Sequence Diagram illustrates the interaction between the student, React frontend, FastAPI backend, SQLite database, administrator and notification system.
+
+It represents the ownership claim submission, validation, database storage, administrator review, approval or rejection, and student notification processes.
+
+The diagram includes alternate flows for invalid claim submissions and administrator decisions.
+
+**Files:**
+- `sequence_diagram.md` – Editable Mermaid source.
+- `UML_Sequence_Diagram.png` – Rendered sequence diagram.
