@@ -14,6 +14,8 @@ from app.models.user import User
 from app.models.revoked_token import RevokedToken
 from app.models.item import Item
 
+from app.claims.routes import router as claim_router
+from app.models.claim import Claim
 
 app = FastAPI(
     title="Campus Lost and Found API",
@@ -30,7 +32,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth_router)
 app.include_router(item_router)
 app.include_router(found_item_router)
-
+app.include_router(claim_router)
 
 # Configure CORS
 app.add_middleware(
