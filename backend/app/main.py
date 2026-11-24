@@ -1,12 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import Base, engine
+from app.auth.routes import router as auth_router
+from app.models.revoked_token import RevokedToken
+
 app = FastAPI(
     title="Campus Lost and Found API",
     description="Backend API for the Campus Lost and Found Management System",
     version="1.0.0"
 )
 
+# Initialize database tables
+Base.metadata.create_all(bind=engine)
+
+# Register authentication routes
+app.include_router(auth_router)
+
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
