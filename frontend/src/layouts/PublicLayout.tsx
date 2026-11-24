@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 
 export const PublicLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#050817]">
+    <div className="min-h-screen flex flex-col bg-[#111110]">
       <Navbar />
       <main className="flex-1 w-full">
         <Outlet />

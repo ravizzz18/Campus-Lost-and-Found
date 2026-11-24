@@ -11,12 +11,12 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const variants = {
-    lost: 'bg-amber-400/10 text-amber-300 border-amber-300/20',
-    found: 'bg-emerald-400/10 text-emerald-300 border-emerald-300/20',
-    resolved: 'bg-slate-300/10 text-slate-300 border-slate-300/20',
-    flagged: 'bg-rose-400/10 text-rose-300 border-rose-300/20',
-    neutral: 'bg-slate-300/10 text-slate-300 border-slate-300/20',
-    royal: 'bg-royal-400/10 text-royal-300 border-royal-300/20',
+    lost: 'bg-[#D5A15D]/10 text-[#D5A15D] border-[#D5A15D]/25',
+    found: 'bg-[#8FA889]/10 text-[#8FA889] border-[#8FA889]/25',
+    resolved: 'bg-[#A29B91]/10 text-[#A29B91] border-[#A29B91]/20',
+    flagged: 'bg-[#CF7668]/10 text-[#CF7668] border-[#CF7668]/25',
+    neutral: 'bg-[#A29B91]/10 text-[#A29B91] border-[#A29B91]/20',
+    royal: 'bg-[#D9824B]/10 text-[#D9824B] border-[#D9824B]/25',
   };
 
   return (

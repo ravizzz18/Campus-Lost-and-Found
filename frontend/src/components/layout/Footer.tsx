@@ -1,11 +1,13 @@
 import React from 'react';
+
+
 import { Link } from 'react-router-dom';
 import { BrandLogo } from '../common/BrandLogo';
 import { APP_CONFIG } from '@/utils/constants';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#050817] border-t border-[#6F91FF]/10 mt-auto">
+    <footer className="bg-[#111110] border-t border-[#35312C] mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Col */}
@@ -22,7 +24,7 @@ export const Footer: React.FC = () => {
 
           {/* Navigation Links */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-800 uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-[#F2EEE8] uppercase tracking-wider">
               Quick Access
             </h4>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-600">

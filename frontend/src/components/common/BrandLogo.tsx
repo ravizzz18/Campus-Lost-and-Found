@@ -23,7 +23,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ variant = 'dark', size = '
 
   return (
     <Link to="/" className="inline-flex items-center gap-2.5 group select-none">
-      <div className={`${iconSizes[size]} rounded-lg border border-royal-400/20 bg-royal-500/10 flex items-center justify-center text-white shadow-[0_0_24px_rgba(49,95,234,0.12)] group-hover:bg-royal-500/20 transition-colors`}>
+      <div className={`${iconSizes[size]} rounded-lg border border-[#D9824B]/30 bg-[#D9824B]/10 flex items-center justify-center text-[#D9824B] shadow-sm group-hover:bg-[#D9824B]/18 transition-colors`}>
         <svg
           viewBox="0 0 24 24"
           fill="none"

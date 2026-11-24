@@ -6,6 +6,7 @@ import { ItemCard } from '@/components/common/ItemCard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ReportsService } from '@/services/reportsService';
 import { ItemReport } from '@/types';
+import campusHero from '@/assets/campus-hero.webp';
 import {
   Search,
   PlusCircle,
@@ -49,16 +50,20 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Section — Atmos-inspired atmospheric interface */}
-      <section className="relative min-h-[620px] sm:min-h-[680px] overflow-hidden border-b border-[#6F91FF]/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(49,95,234,0.46),transparent_38%),radial-gradient(circle_at_80%_20%,rgba(37,99,235,0.14),transparent_24%),linear-gradient(135deg,#050817,#091127_55%,#050817)]"></div>
-        <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(132,164,255,0.7)_0.7px,transparent_0.7px)] [background-size:38px_38px]"></div>
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,transparent,rgba(49,95,234,0.18)_55%,rgba(49,95,234,0.28))] blur-sm"></div>
+      <section className="relative min-h-[620px] sm:min-h-[680px] overflow-hidden border-b border-[#35312C]">
+        <div
+          className="absolute inset-0 bg-cover bg-[position:center_55%]"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(17,17,16,0.96) 0%, rgba(17,17,16,0.82) 46%, rgba(17,17,16,0.38) 100%), linear-gradient(180deg, rgba(17,17,16,0.12) 0%, rgba(17,17,16,0.18) 58%, rgba(17,17,16,0.82) 100%), url(${campusHero})`,
+          }}
+        ></div>
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(180deg,transparent,rgba(17,17,16,0.72))]"></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 lg:pt-10">
           <div className="flex items-center justify-between gap-4 text-xs">
             <div>
               <div className="flex items-center gap-2 text-slate-200">
-                <span className="h-2 w-2 rounded-full bg-royal-400 shadow-[0_0_14px_rgba(96,165,250,0.9)]"></span>
+                <span className="h-2 w-2 rounded-full bg-[#D9824B]"></span>
                 <span>System active</span>
               </div>
               <div className="mt-1 font-mono text-[11px] text-slate-400">Campus recovery network • Live</div>
@@ -69,14 +74,14 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="mt-10 sm:mt-12 lg:mt-14 max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-royal-400/20 bg-royal-500/10 text-royal-300 text-[10px] font-mono font-semibold uppercase tracking-[0.18em] mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D9824B]/30 bg-[#D9824B]/8 text-[#D9824B] text-[10px] font-mono font-semibold uppercase tracking-[0.18em] mb-6">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Campus Lost &amp; Found Directory</span>
             </div>
 
             <h1 className="text-[clamp(3rem,8vw,7.4rem)] leading-[0.86] font-bold tracking-[-0.055em] text-white">
               CAMPUS
-              <span className="block text-transparent bg-clip-text bg-[linear-gradient(90deg,#FFFFFF_0%,#AFC2FF_38%,#315FEA_100%)]">
+              <span className="block text-[#D9824B]">
                 LOST &amp; FOUND
               </span>
             </h1>
@@ -94,7 +99,7 @@ export const LandingPage: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by keyword, item model, or campus building..."
-                  className="w-full pl-11 pr-4 py-3.5 bg-[#070B1C]/80 text-white rounded-lg border border-[#8DA4EB]/20 focus:border-royal-400 focus:ring-2 focus:ring-royal-500/20 text-sm shadow-[0_14px_40px_rgba(0,0,0,0.24)] placeholder-slate-500"
+                  className="w-full pl-11 pr-4 py-3.5 bg-[#191816] text-[#F2EEE8] rounded-lg border border-[#35312C] focus:border-[#D9824B] focus:ring-2 focus:ring-[#D9824B]/20 text-sm shadow-[0_14px_40px_rgba(0,0,0,0.14)] placeholder-[#787169]"
                 />
               </div>
               <Button type="submit" variant="primary" size="lg" className="sm:w-auto w-full">
@@ -137,7 +142,7 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* Highlight Stats Bar */}
-        <div className="relative z-10 border-t border-white/[0.06] bg-[#050817]/55 py-4 backdrop-blur-md">
+        <div className="relative z-10 border-t border-[#35312C] bg-[#111110]/75 py-4 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
               <div className="text-xl sm:text-2xl font-bold text-white">100%</div>
@@ -171,8 +176,8 @@ export const LandingPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="relative overflow-hidden border-t-4 border-t-royal-500 p-6 sm:p-7">
-            <div className="w-10 h-10 rounded-lg border border-royal-400/20 bg-royal-500/10 text-royal-300 flex items-center justify-center font-mono text-sm mb-4">
+          <Card className="relative overflow-hidden border-t-4 border-t-[#D9824B] p-6 sm:p-7">
+            <div className="w-10 h-10 rounded-lg border border-[#D9824B]/25 bg-[#D9824B]/10 text-[#D9824B] flex items-center justify-center font-mono text-sm mb-4">
               1
             </div>
             <h3 className="text-base font-bold text-white">Report Promptly</h3>
@@ -232,9 +237,9 @@ export const LandingPage: React.FC = () => {
 
       {/* Safety & Institutional Verification Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[linear-gradient(135deg,rgba(49,95,234,0.18),rgba(10,16,36,0.92))] border border-royal-400/20 rounded-2xl p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="bg-[#191816] border border-[#35312C] rounded-2xl p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-royal-500 text-white rounded-xl shadow-sm flex-shrink-0">
+            <div className="p-3 bg-[#D9824B] text-[#111110] rounded-xl shadow-sm flex-shrink-0">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>

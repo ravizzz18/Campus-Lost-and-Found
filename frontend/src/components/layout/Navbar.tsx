@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BrandLogo } from '../common/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,8 +19,16 @@ import {
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const { user, isAuthenticated, isAdmin, loginAsDemoUser, logout } = useAuth();
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
@@ -29,13 +37,21 @@ export const Navbar: React.FC = () => {
 
   const navLinkClass = (path: string) => `
     inline-flex items-center text-sm font-medium transition-colors duration-150 px-3 py-1.5 rounded-md
-    ${isActive(path) ? 'text-white bg-royal-500/15 border border-royal-400/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'}
+    ${isActive(path) ? 'text-[#F2EEE8] bg-[#D9824B]/12 border border-[#D9824B]/30 font-semibold' : 'text-[#A29B91] hover:text-[#F2EEE8] hover:bg-[#22201D]'}
   `;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#050817]/88 backdrop-blur-xl border-b border-[#6F91FF]/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 w-full px-0 transition-all duration-300">
+      <div
+        className={`mx-auto h-full transition-all duration-300 ${
+          isScrolled
+            ? 'mt-3 max-w-[calc(100%-2rem)] rounded-2xl border border-[#35312C]/90 bg-[#111110]/78 px-4 shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:max-w-[calc(100%-3rem)] lg:max-w-7xl'
+            : 'w-full border-b border-[#35312C] bg-[#111110]'
+        }`}
+      >
+        <div className={`flex items-center justify-between h-16 ${
+          isScrolled ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+        }`}>
           {/* Brand Logo */}
           <div className="flex-shrink-0">
             <BrandLogo />
