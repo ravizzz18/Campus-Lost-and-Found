@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This directory contains the database documentation, Entity Relationship Diagram (ERD), initialization scripts, verification utilities, and maintenance procedures for the Campus Lost and Found Management System.
+This directory contains the database documentation, Entity Relationship Diagram (ERD), initialization scripts, verification utilities, testing reports, and maintenance procedures for the Campus Lost and Found Management System.
 
 The project uses SQLite for local database storage and SQLAlchemy as its Object Relational Mapping (ORM) framework.
 
@@ -45,6 +45,7 @@ database/
 │   ├── database_schema.md
 │   ├── data_dictionary.md
 │   ├── database_maintenance.md
+│   ├── database_testing.md
 │   └── erDiagram.png
 └── scripts/
     ├── init_db.py
@@ -119,6 +120,7 @@ The `design/` directory contains the following documentation:
 | `database_schema.md` | Describes the database schema and table definitions. |
 | `data_dictionary.md` | Documents database fields, data types and constraints. |
 | `database_maintenance.md` | Explains database backup, restoration and maintenance procedures. |
+| `database_testing.md` | Documents database verification and API integration testing results. |
 | `erDiagram.png` | Visual representation of database entities and relationships. |
 
 ## 9. Database Maintenance
@@ -137,7 +139,24 @@ The guide covers:
 
 Regular database backups and integrity checks help maintain database consistency and reliability.
 
-## 10. Security and Data Protection
+## 10. Database Testing
+
+Database and API integration testing results are documented in:
+
+`database/design/database_testing.md`
+
+The testing report covers:
+
+- Found Item API integration testing.
+- Claim Management API integration testing.
+- INSERT, SELECT, UPDATE and DELETE operations exercised through the APIs.
+- Database table and primary key verification.
+- SQLite integrity verification.
+- Testing results and limitations.
+
+The existing integration scripts and database verification utility can be executed using the commands documented in the testing report.
+
+## 11. Security and Data Protection
 
 - Passwords are stored as password hashes rather than plain text.
 - JWT token revocation is supported through the `revoked_tokens` table.
@@ -145,7 +164,7 @@ Regular database backups and integrity checks help maintain database consistency
 - Local database files containing user information should not be committed to the public repository.
 - Database backups containing user information should also remain excluded from version control.
 
-## 11. Notes
+## 12. Notes
 
 - SQLite is used for local database storage.
 - SQLAlchemy handles database operations.
@@ -153,8 +172,8 @@ Regular database backups and integrity checks help maintain database consistency
 - The local `.db` file is excluded from Git through `.gitignore`.
 - The initialization and verification scripts should be executed from the project root directory.
 
-## 12. Conclusion
+## 13. Conclusion
 
 The database module provides structured storage for users, lost and found items, claims and revoked authentication tokens.
 
-The combination of database schema documentation, an Entity Relationship Diagram, SQLAlchemy models, initialization utilities and automated verification helps maintain the consistency, organization and reliability of the Campus Lost and Found Management System.
+The combination of database schema documentation, an Entity Relationship Diagram, SQLAlchemy models, initialization utilities, automated verification and testing documentation helps maintain the consistency, organization and reliability of the Campus Lost and Found Management System.
