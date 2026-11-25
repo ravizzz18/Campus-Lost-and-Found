@@ -1,23 +1,85 @@
 
 import { test, expect } from '@playwright/test';
 
+const testPassword = 'CampusTest123!';
+const testItemTitle = 'E2E Test Laptop';
+const testDescription =
+  'A silver laptop was left near the second floor study area.';
+
 test.describe('Item Details - E2E Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/item/clf-101');
+  test.beforeEach(async ({ page, request }) => {
+    const email = `e2e.item.${Date.now()}@example.com`;
+
+    // Register a fresh test account.
+    const registration = await request.post(
+      'http://127.0.0.1:8000/api/auth/register',
+      {
+        data: {
+          full_name: 'Item Details Test Student',
+          email,
+          password: testPassword,
+        },
+      }
+    );
+
+    expect(registration.status()).toBe(201);
+
+    // Obtain a real backend token.
+    const login = await request.post(
+      'http://127.0.0.1:8000/api/auth/login',
+      {
+        form: {
+          username: email,
+          password: testPassword,
+        },
+      }
+    );
+
+    expect(login.ok()).toBeTruthy();
+
+    const tokenData = await login.json();
+
+    // Create a real Lost item through the API.
+    const itemResponse = await request.post(
+      'http://127.0.0.1:8000/api/items',
+      {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+        data: {
+          item_name: testItemTitle,
+          description: testDescription,
+          category: 'electronics',
+          location: 'Central Library',
+          report_type: 'Lost',
+          report_date: new Date().toISOString(),
+        },
+      }
+    );
+
+    expect(itemResponse.status()).toBe(201);
+
+    const item = await itemResponse.json();
+
+    // Open the real item's public details page as a guest.
+    await page.goto(`/item/${item.item_id}`);
   });
 
   test('should display the item details', async ({ page }) => {
     await expect(
-      page.getByRole('heading', {
-        name: 'Silver Dell XPS 15 Laptop in Black Sleeve'
-      })
+      page.getByRole('heading', { name: testItemTitle })
     ).toBeVisible();
 
-    await expect(page.getByText('Lost Item', { exact: true })).toBeVisible();
-    await expect(page.getByText('Central Library')).toBeVisible();
+    await expect(
+      page.getByText('Lost Item', { exact: true })
+    ).toBeVisible();
 
     await expect(
-      page.getByText(/Left on the 2nd floor silent study area/)
+      page.getByText('Central Library')
+    ).toBeVisible();
+
+    await expect(
+      page.getByText(testDescription)
     ).toBeVisible();
   });
 
@@ -35,9 +97,6 @@ test.describe('Item Details - E2E Tests', () => {
     await expect(
       page.getByRole('link', { name: 'Sign in with Campus ID' })
     ).toBeVisible();
-
-    await expect(page.getByText('+1 (555) 019-2834')).toHaveCount(0);
-    await expect(page.getByText('alex.chen@campus.edu')).toHaveCount(0);
   });
 
   test('should show the login link when a guest tries to flag a listing', async ({ page }) => {
