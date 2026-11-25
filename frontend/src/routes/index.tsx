@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
@@ -25,6 +26,7 @@ import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { ReportLostPage } from '@/pages/reports/ReportLostPage';
 import { ReportFoundPage } from '@/pages/reports/ReportFoundPage';
 import { MyReportsPage } from '@/pages/reports/MyReportsPage';
+import { MyClaimsPage } from '@/pages/claims/MyClaimsPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 
 // Admin Moderation Pages
@@ -55,6 +57,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/report-lost" element={<ReportLostPage />} />
         <Route path="/report-found" element={<ReportFoundPage />} />
         <Route path="/my-reports" element={<MyReportsPage />} />
+        <Route path="/my-claims" element={<MyClaimsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
 

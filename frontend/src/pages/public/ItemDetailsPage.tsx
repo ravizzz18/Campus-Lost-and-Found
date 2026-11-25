@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
@@ -7,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useAuth } from '@/hooks/useAuth';
 import { ReportsService } from '@/services/reportsService';
+import { ClaimsService } from '@/services/claimsService';
 import { ItemReport, FlaggedReport } from '@/types';
 import { formatCategory, formatDate } from '@/utils/formatters';
 import {
@@ -42,31 +44,53 @@ export const ItemDetailsPage: React.FC = () => {
 
   // Flag Modal State
   const [showFlagModal, setShowFlagModal] = useState(false);
-  const [flagReason, setFlagReason] = useState<FlaggedReport['flagReason']>('incorrect_information');
+  const [flagReason, setFlagReason] =
+    useState<FlaggedReport['flagReason']>('incorrect_information');
   const [flagDetails, setFlagDetails] = useState('');
   const [isSubmittingFlag, setIsSubmittingFlag] = useState(false);
   const [flagFeedback, setFlagFeedback] = useState<string | null>(null);
 
+  // Ownership Claim State
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimDetails, setClaimDetails] = useState('');
+  const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
+  const [claimFeedback, setClaimFeedback] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+
   // Load public report
   useEffect(() => {
     let mounted = true;
-    if (!id) return;
+
+    if (!id) {
+      setError('Invalid report ID.');
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
+    setError(null);
+
     ReportsService.getPublicReportById(id)
       .then((data) => {
         if (!mounted) return;
+
         if (data) {
           setItem(data);
         } else {
-          setError('The requested report does not exist or has been removed from the directory.');
+          setError(
+            'The requested report does not exist or has been removed from the directory.'
+          );
         }
       })
       .catch(() => {
-        if (mounted) setError('Failed to load report details.');
+        if (mounted) {
+          setError('Failed to load report details.');
+        }
       })
       .finally(() => {
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       });
 
     return () => {
@@ -77,14 +101,21 @@ export const ItemDetailsPage: React.FC = () => {
   // Handle protected contact revelation
   const handleRevealContact = async () => {
     if (!item) return;
+
     setIsRevealingContact(true);
     setContactError(null);
+
     try {
-      const contact = await ReportsService.getReporterContact(item.id, isAuthenticated);
+      const contact = await ReportsService.getReporterContact(
+        item.id,
+        isAuthenticated
+      );
       setRevealedContact(contact);
     } catch (err: unknown) {
       setContactError(
-        err instanceof Error ? err.message : 'Unable to retrieve authenticated contact details.'
+        err instanceof Error
+          ? err.message
+          : 'Unable to retrieve authenticated contact details.'
       );
     } finally {
       setIsRevealingContact(false);
@@ -94,7 +125,9 @@ export const ItemDetailsPage: React.FC = () => {
   // Handle flag submission
   const handleSubmitFlag = async () => {
     if (!item || !user) return;
+
     setIsSubmittingFlag(true);
+
     try {
       await ReportsService.submitFlag(
         item.id,
@@ -103,12 +136,66 @@ export const ItemDetailsPage: React.FC = () => {
         user.id,
         user.name
       );
+
       setShowFlagModal(false);
-      setFlagFeedback('Your flag report has been submitted to campus moderators for review.');
+      setFlagFeedback(
+        'Your flag report has been submitted to campus moderators for review.'
+      );
     } catch {
       alert('Failed to submit flag. Please try again.');
     } finally {
       setIsSubmittingFlag(false);
+    }
+  };
+
+  // Handle ownership claim submission
+  const handleSubmitClaim = async () => {
+    if (!item || !user) {
+      setClaimError('Please sign in before submitting a claim.');
+      return;
+    }
+
+    const itemId = Number(item.id);
+
+    if (!Number.isInteger(itemId) || itemId <= 0) {
+      setClaimError('Invalid item ID. Please refresh the page and try again.');
+      return;
+    }
+
+    if (claimDetails.trim().length < 10) {
+      setClaimError(
+        'Please provide at least 10 characters explaining your ownership claim.'
+      );
+      return;
+    }
+
+    if (claimDetails.trim().length > 2000) {
+      setClaimError('Claim details cannot exceed 2000 characters.');
+      return;
+    }
+
+    setIsSubmittingClaim(true);
+    setClaimError(null);
+
+    try {
+      await ClaimsService.createClaim({
+        item_id: itemId,
+        claim_details: claimDetails.trim(),
+      });
+
+      setShowClaimModal(false);
+      setClaimDetails('');
+      setClaimFeedback(
+        'Your ownership claim has been submitted successfully. You can track its status under My Claims.'
+      );
+    } catch (err: unknown) {
+      setClaimError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to submit your claim. Please try again.'
+      );
+    } finally {
+      setIsSubmittingClaim(false);
     }
   };
 
@@ -129,7 +216,11 @@ export const ItemDetailsPage: React.FC = () => {
         />
         <div className="text-center mt-4">
           <Link to="/browse">
-            <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<ArrowLeft className="w-4 h-4" />}
+            >
               Back to Directory
             </Button>
           </Link>
@@ -139,6 +230,19 @@ export const ItemDetailsPage: React.FC = () => {
   }
 
   const isLost = item.type === 'lost';
+  const isOwnListing =
+    String(item.reporterId) === String(user?.id);
+
+  const canClaim =
+    !isLost &&
+    item.status !== 'resolved' &&
+    isAuthenticated &&
+    !isOwnListing;
+
+  const canClaimAfterLogin =
+    !isLost &&
+    item.status !== 'resolved' &&
+    !isAuthenticated;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -153,13 +257,34 @@ export const ItemDetailsPage: React.FC = () => {
         </Link>
       </div>
 
+      {/* Flag feedback */}
       {flagFeedback && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>{flagFeedback}</span>
           </div>
-          <button onClick={() => setFlagFeedback(null)} className="text-emerald-700 font-bold ml-2">
+          <button
+            onClick={() => setFlagFeedback(null)}
+            className="text-emerald-700 font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Claim feedback */}
+      {claimFeedback && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>{claimFeedback}</span>
+          </div>
+          <button
+            onClick={() => setClaimFeedback(null)}
+            className="text-emerald-700 font-bold ml-2"
+            aria-label="Dismiss claim confirmation"
+          >
             ✕
           </button>
         </div>
@@ -173,8 +298,14 @@ export const ItemDetailsPage: React.FC = () => {
             <Badge variant={isLost ? 'lost' : 'found'} className="text-sm px-3 py-1">
               {isLost ? 'Lost Item' : 'Found Item'}
             </Badge>
-            <Badge variant="neutral">{formatCategory(item.category)}</Badge>
-            <span className="text-xs text-slate-400 font-mono">Report ID: #{item.id}</span>
+
+            <Badge variant="neutral">
+              {formatCategory(item.category)}
+            </Badge>
+
+            <span className="text-xs text-slate-400 font-mono">
+              Report ID: #{item.id}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -213,7 +344,7 @@ export const ItemDetailsPage: React.FC = () => {
 
         {/* Card Body */}
         <div className="p-6 sm:p-8 space-y-6">
-          {/* Images Section if Available */}
+          {/* Images Section */}
           {item.images && item.images.length > 0 && (
             <div className="mb-6 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
               <img
@@ -228,6 +359,7 @@ export const ItemDetailsPage: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-navy-800 tracking-tight leading-tight">
               {item.title}
             </h1>
+
             <p className="mt-4 text-base text-slate-700 leading-relaxed whitespace-pre-line">
               {item.description}
             </p>
@@ -239,11 +371,14 @@ export const ItemDetailsPage: React.FC = () => {
               <div className="p-2.5 rounded-lg bg-royal-50 text-royal-600 flex-shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
+
               <div>
                 <span className="block text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                   Campus Location
                 </span>
-                <span className="font-semibold text-navy-800">{item.location}</span>
+                <span className="font-semibold text-navy-800">
+                  {item.location}
+                </span>
               </div>
             </div>
 
@@ -251,11 +386,14 @@ export const ItemDetailsPage: React.FC = () => {
               <div className="p-2.5 rounded-lg bg-amber-50 text-amber-600 flex-shrink-0">
                 <Calendar className="w-4 h-4" />
               </div>
+
               <div>
                 <span className="block text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                   {isLost ? 'Date Last Seen' : 'Date Found'}
                 </span>
-                <span className="font-semibold text-navy-800">{formatDate(item.dateLostOrFound)}</span>
+                <span className="font-semibold text-navy-800">
+                  {formatDate(item.dateLostOrFound)}
+                </span>
               </div>
             </div>
           </div>
@@ -263,7 +401,9 @@ export const ItemDetailsPage: React.FC = () => {
           {/* Publication Context */}
           <div className="flex items-center gap-2 text-xs text-slate-400 pt-2">
             <Clock className="w-3.5 h-3.5" />
-            <span>Official report registered on {formatDate(item.dateReported)}</span>
+            <span>
+              Official report registered on {formatDate(item.dateReported)}
+            </span>
             <span>•</span>
             <span>Filed by {item.reporterName}</span>
           </div>
@@ -275,6 +415,7 @@ export const ItemDetailsPage: React.FC = () => {
                 <Lock className="w-3.5 h-3.5 text-royal-500" />
                 <span>Reporter Contact Information</span>
               </h3>
+
               <span className="text-[11px] text-slate-400 font-medium">
                 Verified Campus Phone Channel
               </span>
@@ -285,7 +426,9 @@ export const ItemDetailsPage: React.FC = () => {
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3 animate-fade-in">
                   <div className="flex items-center gap-2 text-sm text-navy-800">
                     <User className="w-4 h-4 text-slate-400" />
-                    <span className="font-semibold">{revealedContact.reporterName}</span>
+                    <span className="font-semibold">
+                      {revealedContact.reporterName}
+                    </span>
                     <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       Authenticated Member
                     </span>
@@ -301,6 +444,7 @@ export const ItemDetailsPage: React.FC = () => {
                         {revealedContact.phone}
                       </a>
                     </div>
+
                     {revealedContact.email && (
                       <div className="flex items-center gap-2 sm:border-l sm:border-slate-200 sm:pl-3">
                         <Mail className="w-4 h-4 text-slate-400" />
@@ -317,7 +461,9 @@ export const ItemDetailsPage: React.FC = () => {
                   <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-500 flex items-start gap-2">
                     <Info className="w-4 h-4 text-royal-500 flex-shrink-0 mt-0.5" />
                     <span>
-                      Please arrange handoffs only in well-lit public campus buildings (such as Central Library helpdesk or the Campus Security office).
+                      Please arrange handoffs only in well-lit public campus
+                      buildings (such as Central Library helpdesk or the Campus
+                      Security office).
                     </span>
                   </div>
                 </div>
@@ -327,13 +473,19 @@ export const ItemDetailsPage: React.FC = () => {
                     <h4 className="text-sm font-semibold text-navy-800">
                       Reporter Phone Number Protected
                     </h4>
+
                     <p className="text-xs text-slate-500 mt-0.5">
-                      You are signed in as a verified campus member. Reveal the phone number to coordinate handoff.
+                      You are signed in as a verified campus member. Reveal
+                      the phone number to coordinate handoff.
                     </p>
+
                     {contactError && (
-                      <p className="text-xs text-rose-600 mt-1 font-medium">{contactError}</p>
+                      <p className="text-xs text-rose-600 mt-1 font-medium">
+                        {contactError}
+                      </p>
                     )}
                   </div>
+
                   <Button
                     variant="primary"
                     size="sm"
@@ -350,12 +502,17 @@ export const ItemDetailsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-full bg-royal-100 text-royal-600 flex items-center justify-center mx-auto">
                   <Lock className="w-5 h-5" />
                 </div>
+
                 <h4 className="text-sm font-bold text-navy-800">
                   Campus Member Verification Required
                 </h4>
+
                 <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                  Under campus safety rules, reporter contact numbers are never exposed publicly. Please sign in with your campus account to view contact details.
+                  Under campus safety rules, reporter contact numbers are never
+                  exposed publicly. Please sign in with your campus account to
+                  view contact details.
                 </p>
+
                 <div className="pt-1">
                   <Link to={`/login?redirect=/item/${item.id}`}>
                     <Button variant="primary" size="sm">
@@ -374,7 +531,30 @@ export const ItemDetailsPage: React.FC = () => {
             Campus Lost &amp; Found Verified Listing
           </span>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Claim button for authenticated users */}
+            {canClaim && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setClaimError(null);
+                  setShowClaimModal(true);
+                }}
+              >
+                Claim This Item
+              </Button>
+            )}
+
+            {/* Claim button for public users */}
+            {canClaimAfterLogin && (
+              <Link to={`/login?redirect=/item/${item.id}`}>
+                <Button variant="primary" size="sm">
+                  Sign in to Claim
+                </Button>
+              </Link>
+            )}
+
             <Link to="/browse">
               <Button variant="outline" size="sm">
                 Browse More Items
@@ -384,14 +564,97 @@ export const ItemDetailsPage: React.FC = () => {
         </div>
       </Card>
 
+      {/* Ownership Claim Dialog */}
+      {showClaimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/40 backdrop-blur-sm">
+          <Card className="max-w-md w-full p-6 space-y-4 shadow-elevated">
+            <div className="flex items-center gap-2.5 text-royal-600">
+              <CheckCircle className="w-5 h-5" />
+              <h3 className="text-base font-bold text-navy-800">
+                Claim Ownership
+              </h3>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Explain why this found item belongs to you. Include identifying
+              details that can help the administrator verify your ownership.
+            </p>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
+                Ownership Details
+              </label>
+
+              <textarea
+                rows={5}
+                maxLength={2000}
+                value={claimDetails}
+                onChange={(e) => {
+                  setClaimDetails(e.target.value);
+                  setClaimError(null);
+                }}
+                placeholder="Describe the item, identifying marks, contents, or other proof of ownership..."
+                className="w-full text-sm p-3 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-royal-500"
+                disabled={isSubmittingClaim}
+              />
+
+              <p className="text-xs text-slate-400 mt-1 text-right">
+                {claimDetails.length}/2000 characters
+              </p>
+
+              <p className="text-xs text-slate-400">
+                Minimum 10 characters.
+              </p>
+            </div>
+
+            {claimError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
+                {claimError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowClaimModal(false);
+                  setClaimError(null);
+                }}
+                disabled={isSubmittingClaim}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSubmitClaim}
+                isLoading={isSubmittingClaim}
+                disabled={
+                  claimDetails.trim().length < 10 ||
+                  claimDetails.trim().length > 2000 ||
+                  isSubmittingClaim
+                }
+              >
+                Submit Claim
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Flag Report Dialog */}
       {showFlagModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/40 backdrop-blur-sm animate-fade-in">
           <Card className="max-w-md w-full p-6 space-y-4 shadow-elevated">
             <div className="flex items-center gap-2.5 text-rose-600">
               <ShieldAlert className="w-5 h-5" />
-              <h3 className="text-base font-bold text-navy-800">Flag Report #{item.id}</h3>
+              <h3 className="text-base font-bold text-navy-800">
+                Flag Report #{item.id}
+              </h3>
             </div>
+
             <p className="text-xs text-slate-500 leading-relaxed">
               Moderators will review this report against university guidelines.
             </p>
@@ -401,16 +664,27 @@ export const ItemDetailsPage: React.FC = () => {
                 <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
                   Reason for Flagging
                 </label>
+
                 <select
                   value={flagReason}
-                  onChange={(e) => setFlagReason(e.target.value as FlaggedReport['flagReason'])}
+                  onChange={(e) =>
+                    setFlagReason(
+                      e.target.value as FlaggedReport['flagReason']
+                    )
+                  }
                   className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-white"
                 >
-                  <option value="incorrect_information">Incorrect or misleading information</option>
-                  <option value="inappropriate_content">Inappropriate or offensive content</option>
+                  <option value="incorrect_information">
+                    Incorrect or misleading information
+                  </option>
+                  <option value="inappropriate_content">
+                    Inappropriate or offensive content
+                  </option>
                   <option value="spam">Duplicate or spam report</option>
                   <option value="fraud">Potential fraudulent claim</option>
-                  <option value="other">Other campus guideline concern</option>
+                  <option value="other">
+                    Other campus guideline concern
+                  </option>
                 </select>
               </div>
 
@@ -418,6 +692,7 @@ export const ItemDetailsPage: React.FC = () => {
                 <label className="block text-xs font-semibold uppercase text-slate-600 mb-1">
                   Details / Explanation
                 </label>
+
                 <textarea
                   rows={3}
                   value={flagDetails}
@@ -425,7 +700,7 @@ export const ItemDetailsPage: React.FC = () => {
                   placeholder="Provide context for the moderation team..."
                   required
                   className="w-full text-sm p-2.5 rounded-lg border border-slate-200 placeholder-slate-400"
-                ></textarea>
+                />
               </div>
             </div>
 
@@ -438,6 +713,7 @@ export const ItemDetailsPage: React.FC = () => {
               >
                 Cancel
               </Button>
+
               <Button
                 variant="danger"
                 size="sm"

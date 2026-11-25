@@ -1,216 +1,265 @@
+
 import { ItemReport, FilterParams, FlaggedReport } from '@/types';
-import { SAMPLE_REPORTS, SAMPLE_FLAGGED_REPORTS } from './mockData';
+import { ApiService } from './api';
 
-/**
- * Campus Lost & Found — Reports Service Layer
- * 
- * Provides clean frontend service interfaces with strict privacy controls.
- * Prepares contracts for direct FastAPI integration:
- * - Public endpoints: do not receive or return reporter phone numbers.
- * - Authenticated endpoints: require session authorization before exposing contact details.
- */
-
-// In-memory development fixture store
-let currentReports: ItemReport[] = [...SAMPLE_REPORTS];
-let currentFlags: FlaggedReport[] = [...SAMPLE_FLAGGED_REPORTS];
+interface BackendItem {
+  item_id: number;
+  user_id: number;
+  item_name: string;
+  description: string;
+  category: string;
+  location: string;
+  report_type: 'Lost' | 'Found';
+  report_date: string;
+  image_path: string | null;
+  status: string;
+}
 
 export class ReportsService {
   /**
-   * Fetches public listings with all sensitive contact information stripped.
+   * Convert backend item data into the existing frontend interface.
    */
-  public static async getPublicReports(filters?: FilterParams): Promise<ItemReport[]> {
-    // Simulate realistic network latency for UI testing
-    await new Promise((res) => setTimeout(res, 120));
+  private static mapBackendItem(item: BackendItem): ItemReport {
+    const reportType = item.report_type.toLowerCase() as 'lost' | 'found';
 
-    let items = currentReports.map(this.sanitizePublicReport);
+    return {
+      id: String(item.item_id),
+      title: item.item_name,
+      description: item.description,
+      type: reportType,
+      category: item.category as ItemReport['category'],
+      location: item.location,
+      dateReported: item.report_date,
+      dateLostOrFound: item.report_date,
+      status: item.status === 'active' ? 'open' : 'resolved',
+      reporterId: String(item.user_id),
+      reporterName: 'Campus member',
+      images: item.image_path ? [item.image_path] : undefined,
+    };
+  }
+
+  /**
+   * Fetch all lost and found reports.
+   */
+  public static async getPublicReports(
+    filters?: FilterParams
+  ): Promise<ItemReport[]> {
+    const [lostItems, foundItems] = await Promise.all([
+      ApiService.request<BackendItem[]>('/items'),
+      ApiService.request<BackendItem[]>('/found-items'),
+    ]);
+
+    let reports = [
+      ...lostItems.map(this.mapBackendItem),
+      ...foundItems.map(this.mapBackendItem),
+    ];
 
     if (filters) {
       if (filters.type && filters.type !== 'all') {
-        items = items.filter((i) => i.type === filters.type);
+        reports = reports.filter(
+          (item) => item.type === filters.type
+        );
       }
+
       if (filters.category && filters.category !== 'all') {
-        items = items.filter((i) => i.category === filters.category);
+        reports = reports.filter(
+          (item) => item.category === filters.category
+        );
       }
+
       if (filters.location && filters.location !== 'all') {
-        items = items.filter((i) => i.location === filters.location);
+        reports = reports.filter((item) =>
+          item.location.toLowerCase().includes(
+            filters.location!.toLowerCase()
+          )
+        );
       }
+
       if (filters.status && filters.status !== 'all') {
-        items = items.filter((i) => i.status === filters.status);
+        reports = reports.filter(
+          (item) => item.status === filters.status
+        );
       }
-      if (filters.query && filters.query.trim()) {
-        const q = filters.query.toLowerCase().trim();
-        items = items.filter(
-          (i) =>
-            i.title.toLowerCase().includes(q) ||
-            i.description.toLowerCase().includes(q) ||
-            i.location.toLowerCase().includes(q)
+
+      if (filters.query?.trim()) {
+        const query = filters.query.toLowerCase().trim();
+
+        reports = reports.filter(
+          (item) =>
+            item.title.toLowerCase().includes(query) ||
+            item.description.toLowerCase().includes(query) ||
+            item.location.toLowerCase().includes(query) ||
+            item.category.toLowerCase().includes(query)
+        );
+      }
+
+      if (filters.dateFrom) {
+        reports = reports.filter(
+          (item) => item.dateLostOrFound >= filters.dateFrom!
+        );
+      }
+
+      if (filters.dateTo) {
+        reports = reports.filter(
+          (item) => item.dateLostOrFound <= filters.dateTo!
         );
       }
     }
 
-    return items;
+    return reports.sort(
+      (a, b) =>
+        new Date(b.dateLostOrFound).getTime() -
+        new Date(a.dateLostOrFound).getTime()
+    );
   }
 
   /**
-   * Fetches single report without private contact information.
+   * Fetch one report by ID.
    */
-  public static async getPublicReportById(id: string): Promise<ItemReport | null> {
-    await new Promise((res) => setTimeout(res, 80));
-    const match = currentReports.find((r) => r.id === id);
-    return match ? this.sanitizePublicReport(match) : null;
+  public static async getPublicReportById(
+    id: string
+  ): Promise<ItemReport | null> {
+    const numericId = Number(id);
+
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return null;
+    }
+
+    const endpoints = ['/items', '/found-items'];
+
+    for (const endpoint of endpoints) {
+      try {
+        const item = await ApiService.request<BackendItem>(
+          `${endpoint}/${numericId}`
+        );
+
+        return this.mapBackendItem(item);
+      } catch (error) {
+        // Try the other report type only when the first lookup returns 404.
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes('not found')
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
-   * Secure Contact Retrieval Endpoint:
-   * Strictly enforces authenticated access. Unauthenticated requests are rejected.
+   * Contact retrieval is not supported by the current backend.
    */
   public static async getReporterContact(
-    reportId: string,
-    isAuthenticated: boolean
-  ): Promise<{ phone: string; email: string; reporterName: string }> {
-    await new Promise((res) => setTimeout(res, 100));
-
-    if (!isAuthenticated) {
-      throw new Error('UNAUTHORIZED: Contact information requires verified campus authentication.');
-    }
-
-    const report = currentReports.find((r) => r.id === reportId);
-    if (!report) {
-      throw new Error('Report not found.');
-    }
-
-    return {
-      phone: report.contactPhone || '+1 (555) 019-0000',
-      email: report.contactEmail || 'reporter@campus.edu',
-      reporterName: report.reporterName,
-    };
+    _reportId: string,
+    _isAuthenticated: boolean
+  ): Promise<{
+    phone: string;
+    email: string;
+    reporterName: string;
+  }> {
+    throw new Error(
+      'Reporter contact retrieval is not yet supported by the backend.'
+    );
   }
 
   /**
-   * Submits a new report (Lost or Found).
-   * Published immediately to the directory.
+   * Create a real lost or found report.
    */
   public static async createReport(
     reportData: Omit<ItemReport, 'id' | 'dateReported' | 'status'>
   ): Promise<ItemReport> {
-    await new Promise((res) => setTimeout(res, 200));
+    // The current backend has no image upload/storage endpoint.
+    if (reportData.images?.length) {
+      throw new Error(
+        'Image uploads are not yet supported by the backend. Please remove the photograph and submit the report again.'
+      );
+    }
 
-    const newReport: ItemReport = {
-      ...reportData,
-      id: `clf-${Math.floor(100 + Math.random() * 900)}`,
-      dateReported: new Date().toISOString().split('T')[0],
-      status: 'open',
+    const isLost = reportData.type === 'lost';
+    const endpoint = isLost ? '/items' : '/found-items';
+
+    const payload = {
+      item_name: reportData.title.trim(),
+      description: reportData.description.trim(),
+      category: reportData.category,
+      location: reportData.location,
+      report_type: isLost ? 'Lost' : 'Found',
+      report_date: new Date(
+        reportData.dateLostOrFound
+      ).toISOString(),
     };
 
-    // Prepend to store
-    currentReports = [newReport, ...currentReports];
-    return newReport;
+    const created = await ApiService.request<BackendItem>(
+      endpoint,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    return this.mapBackendItem(created);
   }
 
   /**
-   * Updates report resolution status.
-   * Enforces rule: ONLY the original reporter can mark a report resolved.
+   * Report resolution is not supported by the current ItemUpdate schema.
    */
   public static async setReportResolution(
-    reportId: string,
-    userId: string,
-    resolved: boolean
+    _reportId: string,
+    _userId: string,
+    _resolved: boolean
   ): Promise<ItemReport> {
-    await new Promise((res) => setTimeout(res, 150));
-
-    const report = currentReports.find((r) => r.id === reportId);
-    if (!report) {
-      throw new Error('Report not found.');
-    }
-
-    // Authorization verification
-    if (report.reporterId !== userId) {
-      throw new Error('FORBIDDEN: Only the original reporter is permitted to resolve this listing.');
-    }
-
-    report.status = resolved ? 'resolved' : 'open';
-    report.resolvedAt = resolved ? new Date().toISOString() : undefined;
-
-    return { ...report };
+    throw new Error(
+      'Report resolution is not yet supported by the backend.'
+    );
   }
 
   /**
-   * Submits a moderation flag for an inappropriate/inaccurate report.
+   * Report flagging is not supported by the current backend.
    */
   public static async submitFlag(
-    reportId: string,
-    reason: FlaggedReport['flagReason'],
-    details: string,
-    userId: string,
-    userName: string
+    _reportId: string,
+    _reason: FlaggedReport['flagReason'],
+    _details: string,
+    _userId: string,
+    _userName: string
   ): Promise<FlaggedReport> {
-    await new Promise((res) => setTimeout(res, 150));
-
-    const report = currentReports.find((r) => r.id === reportId);
-    if (!report) {
-      throw new Error('Report not found.');
-    }
-
-    const newFlag: FlaggedReport = {
-      id: `flg-${Math.floor(500 + Math.random() * 500)}`,
-      reportId,
-      itemTitle: report.title,
-      reportedByUserId: userId,
-      reportedByUserName: userName,
-      flagReason: reason,
-      flagDetails: details,
-      flaggedAt: new Date().toISOString(),
-      status: 'pending',
-    };
-
-    currentFlags = [newFlag, ...currentFlags];
-    report.isFlagged = true;
-
-    return newFlag;
+    throw new Error(
+      'Report flagging is not yet supported by the backend.'
+    );
   }
 
   /**
-   * Administrative queue retrieval.
+   * Admin moderation queue is not supported by the current backend.
    */
-  public static async getFlaggedQueue(isAdmin: boolean): Promise<FlaggedReport[]> {
+  public static async getFlaggedQueue(
+    isAdmin: boolean
+  ): Promise<FlaggedReport[]> {
     if (!isAdmin) {
-      throw new Error('FORBIDDEN: Admin privileges required to view moderation queue.');
+      throw new Error('FORBIDDEN: Admin privileges required.');
     }
-    await new Promise((res) => setTimeout(res, 100));
-    return [...currentFlags];
+
+    throw new Error(
+      'The moderation queue is not yet supported by the backend.'
+    );
   }
 
   /**
-   * Administrative decision execution.
+   * Admin flag resolution is not supported by the current backend.
    */
   public static async resolveFlag(
-    flagId: string,
-    action: 'approved' | 'removed',
+    _flagId: string,
+    _action: 'approved' | 'removed',
     isAdmin: boolean,
-    notes?: string
+    _notes?: string
   ): Promise<void> {
     if (!isAdmin) {
       throw new Error('FORBIDDEN: Admin privileges required.');
     }
-    await new Promise((res) => setTimeout(res, 120));
 
-    const flag = currentFlags.find((f) => f.id === flagId);
-    if (flag) {
-      flag.status = action === 'approved' ? 'reviewed' : 'action_taken';
-      flag.reviewerNotes = notes;
-    }
-
-    if (action === 'removed' && flag) {
-      currentReports = currentReports.filter((r) => r.id !== flag.reportId);
-    }
-  }
-
-  /**
-   * Strips all private contact info from public models.
-   */
-  private static sanitizePublicReport(report: ItemReport): ItemReport {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { contactPhone, contactEmail, ...safeReport } = report;
-    return safeReport;
+    throw new Error(
+      'Flag moderation is not yet supported by the backend.'
+    );
   }
 }

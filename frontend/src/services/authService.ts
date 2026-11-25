@@ -1,11 +1,6 @@
-import { UserProfile, UserRole } from '@/types';
 
-/**
- * Campus Lost & Found — Authentication Service Abstraction
- * 
- * Provides clean service interface for user authentication and session management.
- * Ready for FastAPI `/api/v1/auth` endpoints.
- */
+import { UserProfile, UserRole } from '@/types';
+import { ApiService } from './api';
 
 const SESSION_STORAGE_KEY = 'clf_session_user';
 const TOKEN_STORAGE_KEY = 'clf_auth_token';
@@ -25,166 +20,205 @@ export interface LoginPayload {
   password: string;
 }
 
-export interface AuthResponse {
-  user: UserProfile;
-  token: string;
+interface BackendUser {
+  user_id: number;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+interface BackendToken {
+  access_token: string;
+  token_type: string;
 }
 
 export class AuthService {
-  /**
-   * Returns current authenticated user session if present.
-   */
   public static getCurrentUser(): UserProfile | null {
     try {
-      const stored = sessionStorage.getItem(SESSION_STORAGE_KEY) || localStorage.getItem(SESSION_STORAGE_KEY);
+      const stored =
+        localStorage.getItem(SESSION_STORAGE_KEY) ||
+        sessionStorage.getItem(SESSION_STORAGE_KEY);
+
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   }
 
-  /**
-   * Returns authentication token for API authorization headers.
-   */
   public static getToken(): string | null {
-    try {
-      return sessionStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(TOKEN_STORAGE_KEY);
-    } catch {
-      return null;
-    }
+    return (
+      localStorage.getItem(TOKEN_STORAGE_KEY) ||
+      sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    );
   }
 
-  /**
-   * User login endpoint abstraction.
-   */
-  public static async login(payload: LoginPayload): Promise<UserProfile> {
-    await new Promise((res) => setTimeout(res, 250));
+  private static mapUser(user: BackendUser): UserProfile {
+    return {
+      id: String(user.user_id),
+      name: user.full_name,
+      email: user.email,
+      role: user.role as UserRole,
+      createdAt: new Date().toISOString(),
+    };
+  }
 
-    if (!payload.email || !payload.password) {
+  private static saveSession(
+    user: UserProfile,
+    token: string,
+    remember = true
+  ): void {
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+
+    storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
+    storage.setItem(TOKEN_STORAGE_KEY, token);
+
+    otherStorage.removeItem(SESSION_STORAGE_KEY);
+    otherStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
+
+  public static async login(
+    payload: LoginPayload
+  ): Promise<UserProfile> {
+    if (!payload.email.trim() || !payload.password) {
       throw new Error('Please provide both email and password.');
     }
 
-    // Role detection for development testing
-    const isAdmin = payload.email.toLowerCase().includes('admin');
-    const user: UserProfile = {
-      id: isAdmin ? 'usr-admin-01' : 'usr-student-01',
-      name: isAdmin ? 'Administrator Sarah' : 'Jordan Taylor',
-      email: payload.email,
-      role: (isAdmin ? 'admin' : 'student') as UserRole,
-      department: isAdmin ? 'Campus Safety Office' : 'Computer Science & Engineering',
-      campusId: isAdmin ? 'STAFF-ADMIN-01' : 'STU-2024-8821',
-      phone: '+1 (555) 019-4567',
-      createdAt: new Date().toISOString(),
-    };
+    const formData = new URLSearchParams();
+    formData.append('username', payload.email.trim());
+    formData.append('password', payload.password);
 
-    const token = `clf_mock_jwt_${Date.now()}`;
-    this.saveSession(user, token, true);
-    return user;
+    const tokenResponse = await ApiService.request<BackendToken>(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+      }
+    );
+
+    localStorage.setItem(
+      TOKEN_STORAGE_KEY,
+      tokenResponse.access_token
+    );
+
+    try {
+      const backendUser = await ApiService.request<BackendUser>(
+        '/auth/me'
+      );
+
+      const user = this.mapUser(backendUser);
+      this.saveSession(user, tokenResponse.access_token);
+
+      return user;
+    } catch (error) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      throw error;
+    }
   }
 
-  /**
-   * User registration endpoint abstraction.
-   * Open to students and college staff.
-   */
-  public static async register(payload: RegisterPayload): Promise<UserProfile> {
-    await new Promise((res) => setTimeout(res, 300));
-
-    if (!payload.name || !payload.email || !payload.phone || !payload.password) {
+  public static async register(
+    payload: RegisterPayload
+  ): Promise<UserProfile> {
+    if (
+      !payload.name.trim() ||
+      !payload.email.trim() ||
+      !payload.phone.trim() ||
+      !payload.password
+    ) {
       throw new Error('All required registration fields must be completed.');
     }
 
-    const user: UserProfile = {
-      id: `usr-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: payload.name.trim(),
-      email: payload.email.trim(),
-      phone: payload.phone.trim(),
-      role: payload.role,
-      department: payload.department?.trim() || 'General Campus',
-      campusId: payload.campusId?.trim() || `ID-${Math.floor(10000 + Math.random() * 90000)}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    const token = `clf_mock_jwt_${Date.now()}`;
-    this.saveSession(user, token, true);
-    return user;
-  }
-
-  /**
-   * Updates profile information (phone, department).
-   */
-  public static async updateProfile(
-    userId: string,
-    updates: Partial<Pick<UserProfile, 'name' | 'phone' | 'department'>>
-  ): Promise<UserProfile> {
-    await new Promise((res) => setTimeout(res, 200));
-
-    const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.id !== userId) {
-      throw new Error('UNAUTHORIZED: Cannot modify this profile.');
+    if (payload.password.length < 8) {
+      throw new Error('Password must contain at least 8 characters.');
     }
 
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      ...updates,
-    };
+    await ApiService.request<BackendUser>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        full_name: payload.name.trim(),
+        email: payload.email.trim(),
+        password: payload.password,
+        role: 'student',
+      }),
+    });
 
-    const token = this.getToken() || 'clf_mock_jwt_updated';
-    this.saveSession(updatedUser, token, true);
-    return updatedUser;
+    // Registration does not issue a token, so log in afterwards.
+    return this.login({
+      email: payload.email,
+      password: payload.password,
+    });
   }
 
-  /**
-   * Clears session and logs out user.
-   */
+  public static async updateProfile(
+    _userId: string,
+    _updates: Partial<
+      Pick<UserProfile, 'name' | 'phone' | 'department'>
+    >
+  ): Promise<UserProfile> {
+    throw new Error(
+      'Profile updates are not yet supported by the backend.'
+    );
+  }
+
   public static async logout(): Promise<void> {
-    await new Promise((res) => setTimeout(res, 100));
+    const token = this.getToken();
+
     try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      if (token && !token.startsWith('clf_mock_jwt_')) {
+        await ApiService.request('/auth/logout', {
+          method: 'POST',
+        });
+      }
+    } finally {
       localStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem(TOKEN_STORAGE_KEY);
-    } catch {
-      // Ignored
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   }
 
-  /**
-   * Quick role-switch helper strictly for evaluator inspection.
-   */
-  public static switchDemoRole(role: 'student' | 'staff' | 'admin'): UserProfile {
-    const isStaff = role === 'staff';
+  // Local-only demo accounts for UI evaluation.
+  public static switchDemoRole(
+    role: 'student' | 'staff' | 'admin'
+  ): UserProfile {
     const isAdmin = role === 'admin';
+    const isStaff = role === 'staff';
 
     const user: UserProfile = {
-      id: isAdmin ? 'usr-admin-01' : isStaff ? 'usr-staff-01' : 'usr-student-01',
-      name: isAdmin ? 'Administrator Sarah' : isStaff ? 'Prof. David Miller' : 'Jordan Taylor',
+      id: isAdmin
+        ? 'usr-admin-01'
+        : isStaff
+          ? 'usr-staff-01'
+          : 'usr-student-01',
+      name: isAdmin
+        ? 'Administrator Sarah'
+        : isStaff
+          ? 'Prof. David Miller'
+          : 'Jordan Taylor',
       email: isAdmin
         ? 'admin.lostfound@campus.edu'
         : isStaff
-        ? 'david.miller@campus.edu'
-        : 'jordan.t@campus.edu',
+          ? 'david.miller@campus.edu'
+          : 'jordan.t@campus.edu',
       role,
       department: isAdmin
         ? 'Campus Safety & Student Affairs'
         : isStaff
-        ? 'Electrical Engineering'
-        : 'Computer Science & Engineering',
-      campusId: isAdmin ? 'STAFF-ADMIN-01' : isStaff ? 'FAC-8812' : 'STU-2024-8821',
+          ? 'Electrical Engineering'
+          : 'Computer Science & Engineering',
+      campusId: isAdmin
+        ? 'STAFF-ADMIN-01'
+        : isStaff
+          ? 'FAC-8812'
+          : 'STU-2024-8821',
       phone: '+1 (555) 019-4567',
       createdAt: '2026-09-01',
     };
 
-    this.saveSession(user, `clf_mock_jwt_${role}`, false);
+    this.saveSession(user, `clf_mock_jwt_${role}`);
     return user;
-  }
-
-  private static saveSession(user: UserProfile, token: string, remember: boolean): void {
-    try {
-      const storage = remember ? localStorage : sessionStorage;
-      storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
-      storage.setItem(TOKEN_STORAGE_KEY, token);
-    } catch {
-      // Storage unavailable
-    }
   }
 }

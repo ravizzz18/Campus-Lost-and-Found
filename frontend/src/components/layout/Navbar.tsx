@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BrandLogo } from '../common/BrandLogo';
@@ -10,6 +11,7 @@ import {
   Search,
   LayoutDashboard,
   FileText,
+  ClipboardList,
   User,
   ShieldAlert,
   LogOut,
@@ -20,13 +22,16 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
   const location = useLocation();
   const { user, isAuthenticated, isAdmin, loginAsDemoUser, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 24);
+
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -37,7 +42,11 @@ export const Navbar: React.FC = () => {
 
   const navLinkClass = (path: string) => `
     inline-flex items-center text-sm font-medium transition-colors duration-150 px-3 py-1.5 rounded-md
-    ${isActive(path) ? 'text-[#F2EEE8] bg-[#D9824B]/12 border border-[#D9824B]/30 font-semibold' : 'text-[#A29B91] hover:text-[#F2EEE8] hover:bg-[#22201D]'}
+    ${
+      isActive(path)
+        ? 'text-[#F2EEE8] bg-[#D9824B]/12 border border-[#D9824B]/30 font-semibold'
+        : 'text-[#A29B91] hover:text-[#F2EEE8] hover:bg-[#22201D]'
+    }
   `;
 
   return (
@@ -49,9 +58,11 @@ export const Navbar: React.FC = () => {
             : 'w-full border-b border-[#35312C] bg-[#111110]'
         }`}
       >
-        <div className={`flex items-center justify-between h-16 ${
-          isScrolled ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
-        }`}>
+        <div
+          className={`flex items-center justify-between h-16 ${
+            isScrolled ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+          }`}
+        >
           {/* Brand Logo */}
           <div className="flex-shrink-0">
             <BrandLogo />
@@ -70,18 +81,28 @@ export const Navbar: React.FC = () => {
                   <LayoutDashboard className="w-4 h-4 mr-1.5" />
                   Dashboard
                 </Link>
+
                 <Link to="/report-lost" className={navLinkClass('/report-lost')}>
                   <PlusCircle className="w-4 h-4 mr-1.5 text-amber-600" />
                   Report Lost
                 </Link>
+
                 <Link to="/report-found" className={navLinkClass('/report-found')}>
                   <PlusCircle className="w-4 h-4 mr-1.5 text-emerald-600" />
                   Report Found
                 </Link>
+
                 <Link to="/my-reports" className={navLinkClass('/my-reports')}>
                   <FileText className="w-4 h-4 mr-1.5" />
                   My Reports
                 </Link>
+
+                {/* My Claims */}
+                <Link to="/my-claims" className={navLinkClass('/my-claims')}>
+                  <ClipboardList className="w-4 h-4 mr-1.5" />
+                  My Claims
+                </Link>
+
                 {isAdmin && (
                   <Link to="/admin/flagged-reports" className={navLinkClass('/admin')}>
                     <ShieldAlert className="w-4 h-4 mr-1.5 text-rose-600" />
@@ -94,6 +115,7 @@ export const Navbar: React.FC = () => {
                 <Link to="/report-lost" className={navLinkClass('/report-lost')}>
                   Report Lost
                 </Link>
+
                 <Link to="/report-found" className={navLinkClass('/report-found')}>
                   Report Found
                 </Link>
@@ -113,6 +135,7 @@ export const Navbar: React.FC = () => {
                     <span>{user?.role}</span>
                     <ChevronDown className="w-3 h-3" />
                   </button>
+
                   {devMenuOpen && (
                     <div className="absolute right-0 mt-2 w-44 rounded-lg border border-[#6F91FF]/20 bg-[#0A1024] py-1 text-left shadow-[0_18px_50px_rgba(0,0,0,0.35)] z-50">
                       <button
@@ -123,8 +146,11 @@ export const Navbar: React.FC = () => {
                         className="flex w-full items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.06]"
                       >
                         <span>Student View</span>
-                        {user?.role === 'student' && <span className="text-royal-400 font-bold">✓</span>}
+                        {user?.role === 'student' && (
+                          <span className="text-royal-400 font-bold">✓</span>
+                        )}
                       </button>
+
                       <button
                         onClick={() => {
                           loginAsDemoUser('admin');
@@ -133,8 +159,11 @@ export const Navbar: React.FC = () => {
                         className="flex w-full items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.06]"
                       >
                         <span>Admin View</span>
-                        {user?.role === 'admin' && <span className="text-royal-400 font-bold">✓</span>}
+                        {user?.role === 'admin' && (
+                          <span className="text-royal-400 font-bold">✓</span>
+                        )}
                       </button>
+
                       <button
                         onClick={() => {
                           logout();
@@ -147,11 +176,13 @@ export const Navbar: React.FC = () => {
                     </div>
                   )}
                 </div>
+
                 <Link to="/profile">
                   <Button variant="outline" size="sm" leftIcon={<User className="w-4 h-4" />}>
                     Profile
                   </Button>
                 </Link>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -167,11 +198,13 @@ export const Navbar: React.FC = () => {
                 <span className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-slate-400">
                   Public Mode
                 </span>
+
                 <Link to="/login">
                   <Button variant="ghost" size="sm">
                     Log in
                   </Button>
                 </Link>
+
                 <Link to="/register">
                   <Button variant="primary" size="sm">
                     Sign up
@@ -181,14 +214,19 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile menu trigger */}
+          {/* Mobile Menu Trigger */}
           <div className="flex md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-royal-500"
               aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -205,6 +243,7 @@ export const Navbar: React.FC = () => {
             <Search className="w-4 h-4 mr-2" />
             Browse Items
           </Link>
+
           <Link
             to="/report-lost"
             onClick={() => setMobileMenuOpen(false)}
@@ -213,6 +252,7 @@ export const Navbar: React.FC = () => {
             <PlusCircle className="w-4 h-4 mr-2 text-amber-600" />
             Report Lost
           </Link>
+
           <Link
             to="/report-found"
             onClick={() => setMobileMenuOpen(false)}
@@ -233,6 +273,7 @@ export const Navbar: React.FC = () => {
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
                 </Link>
+
                 <Link
                   to="/my-reports"
                   onClick={() => setMobileMenuOpen(false)}
@@ -241,6 +282,17 @@ export const Navbar: React.FC = () => {
                   <FileText className="w-4 h-4 mr-2" />
                   My Reports
                 </Link>
+
+                {/* My Claims */}
+                <Link
+                  to="/my-claims"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+                >
+                  <ClipboardList className="w-4 h-4 mr-2" />
+                  My Claims
+                </Link>
+
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
@@ -249,6 +301,7 @@ export const Navbar: React.FC = () => {
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </Link>
+
                 {isAdmin && (
                   <Link
                     to="/admin/flagged-reports"
@@ -260,6 +313,7 @@ export const Navbar: React.FC = () => {
                   </Link>
                 )}
               </div>
+
               <div className="pt-2 border-t border-slate-100">
                 <button
                   onClick={() => {
@@ -284,6 +338,7 @@ export const Navbar: React.FC = () => {
                   Log in
                 </Button>
               </Link>
+
               <Link
                 to="/register"
                 onClick={() => setMobileMenuOpen(false)}

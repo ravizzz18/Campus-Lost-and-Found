@@ -83,3 +83,16 @@ export interface BreadcrumbItem {
   label: string;
   href?: string;
 }
+
+
+export interface ClaimReport {
+  claim_id: number;
+  item_id: number;
+  user_id: number;
+  claim_details: string;
+  claim_status: 'pending' | 'approved' | 'rejected';
+  admin_review: string | null;
+  reviewed_by: number | null;
+  claim_date: string;
+  reviewed_at: string | null;
+}

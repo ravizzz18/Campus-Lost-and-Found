@@ -1,0 +1,25 @@
+[PASS] Python virtual environment found
+[PASS] Node.js and npm available
+[PASS] Frontend dependencies installed
+[PASS] Existing SQLite database found
+[PASS] Ports 8000 and 3000 are available
+[PASS] TypeScript validation
+[PASS] Frontend production build
+[PASS] FastAPI backend started
+[PASS] Vite frontend started
+[PASS] Backend health endpoint
+[PASS] Student registration
+[PASS] Student login
+[PASS] Authenticated profile retrieval
+[PASS] Lost item creation
+[PASS] Found item creation
+[PASS] Lost report appears in public listing
+[PASS] Found report appears in public listing
+[PASS] Individual lost report retrieval
+[PASS] Authenticated claims endpoint
+[PASS] Lost and found reports persisted in SQLite
+[WARN] Image upload/storage requires a backend upload endpoint
+[WARN] Reporter contact retrieval requires a backend endpoint
+[WARN] Report resolution/reopening requires backend status support
+[WARN] Flagging and moderation require backend routes
+[WARN] Claims frontend workflow still requires integration
